@@ -21,7 +21,7 @@ const state = {
   mode: 'garage', paused: false, car: 0, speed: 0, throttle: 0, boost: 100,
   boosting: false, drifting: false, total: .002, lateral: 0, lateralVelocity: 0,
   lap: 1, elapsed: 0, topSpeed: 0, nearMisses: 0, shake: 0, tireGrip: 100,
-  impactCooldown: 0, lastCorner: '', finishPosition: 1
+  impactCooldown: 0, contactCooldown: 0, lastCorner: '', finishPosition: 1
 };
 const keys = { left: false, right: false, up: false, down: false, boost: false, drift: false };
 const cars = [
@@ -69,6 +69,7 @@ const controlPoints=[
 ].map(p=>new THREE.Vector3(...p));
 const circuit=new THREE.CatmullRomCurve3(controlPoints,true,'catmullrom',.24);
 const TRACK_LENGTH=circuit.getLength(), METERS_PER_UNIT=10.8, ROAD_HALF=6.6, TRACK_SAMPLES=720;
+const CAR_LENGTH=5.4, GRID_GAP=7.2/TRACK_LENGTH;
 const mod=n=>THREE.MathUtils.euclideanModulo(n,1);
 const trackPoint=p=>circuit.getPointAt(mod(p));
 const trackTangent=p=>circuit.getTangentAt(mod(p)).normalize();
@@ -207,7 +208,7 @@ function createCar(config,index=0,isPlayer=true){
 
 let player=createCar(cars[0],0,true);scene.add(player);
 const ai=[];
-for(let i=0;i<7;i++){const mesh=createCar(cars[(i+1)%3],i+1,false);scene.add(mesh);ai.push({mesh,total:-.0055*(i+1),speed:0,lateral:(i%2?.9:-.9),targetLane:(i%2?.9:-.9),skill:.91+rnd()*.08,aggression:.4+rnd()*.55,max:304+rnd()*25,mistake:0,phase:rnd()*10,contact:0});}
+for(let i=0;i<7;i++){const mesh=createCar(cars[(i+1)%3],i+1,false);scene.add(mesh);ai.push({mesh,total:.002-GRID_GAP*(i+1),speed:0,lateral:(i%2?1.35:-1.35),targetLane:(i%2?1.35:-1.35),skill:.91+rnd()*.08,aggression:.4+rnd()*.55,max:304+rnd()*25,mistake:0,phase:rnd()*10,contact:0});}
 
 const particles=[];
 function emit(type,count=1){const data=trackData(state.total);for(let k=0;k<count;k++){if(particles.length>210){const q=particles.shift();scene.remove(q.mesh);}const color=type==='boost'?(rnd()>.45?0x4ddfff:0xd7ff38):type==='spark'?0xffc24c:0xbfc4c2,size=type==='smoke'?.12+rnd()*.16:.055+rnd()*.1;const mesh=new THREE.Mesh(new THREE.IcosahedronGeometry(size,0),new THREE.MeshBasicMaterial({color,transparent:true,depthWrite:false}));mesh.position.copy(player.position).addScaledVector(data.tangent,-2.3).addScaledVector(data.right,(rnd()-.5)*2);mesh.position.y+=.25;scene.add(mesh);particles.push({mesh,life:1,type,velocity:data.tangent.clone().multiplyScalar(-(type==='boost'?4+rnd()*6:1+rnd()*2)).add(new THREE.Vector3((rnd()-.5)*.8,type==='smoke'?.5:rnd()*1.8,(rnd()-.5)*.8))});}}
@@ -220,11 +221,37 @@ function createMiniMap(){const holder=document.querySelector('.minimap'),old=hol
 function curvatureSpeed(data,grip){if(data.curvature<.004)return 350;const radiusMeters=(1/data.curvature)*METERS_PER_UNIT;return THREE.MathUtils.clamp(Math.sqrt(grip*9.81*radiusMeters)*3.6,62,335);}
 function playerPosition(){let ahead=0;for(const r of ai)if(r.total>state.total)ahead++;return Math.min(8,ahead+1);}
 function updateAI(dt,time){
-  for(const r of ai){r.contact=Math.max(0,r.contact-dt);const d=trackData(r.total),safe=curvatureSpeed(d,1.72*r.skill),playerGap=state.total-r.total;if(r.mistake>0)r.mistake-=dt;else if(rnd()<.002)r.mistake=.45+rnd()*1.1;let target=Math.min(r.max,safe*(r.mistake>0?.72:1));if(playerGap>0&&playerGap<.035){target=Math.min(r.max,target+18*r.aggression);if(Math.abs(r.targetLane-state.lateral)<1.2)r.targetLane=THREE.MathUtils.clamp(state.lateral+(rnd()>.5?2.4:-2.4),-4.9,4.9);}if(playerGap<-.02||playerGap>.06)r.targetLane=Math.sin(time*.18+r.phase)*1.15;r.speed+=THREE.MathUtils.clamp(target-r.speed,-29*dt,10.5*dt);r.speed=Math.max(0,r.speed);r.total+=(r.speed/3.6*dt)/(TRACK_LENGTH*METERS_PER_UNIT);r.lateral+=(r.targetLane-r.lateral)*dt*(1.1+r.aggression);const weave=Math.sin(time*.7+r.phase)*.12;setCarOnTrack(r.mesh,r.total,r.lateral+weave,Math.sin(time*.7+r.phase)*.012);const longitudinal=Math.abs(r.total-state.total)*TRACK_LENGTH;if(longitudinal<2.3&&Math.abs(r.lateral-state.lateral)<1.55&&r.contact<=0){state.speed*=.77;state.shake=.5;state.lateralVelocity+=(state.lateral>r.lateral?1:-1)*2.8;r.contact=.8;flash('WHEEL TO WHEEL');emit('spark',7);}else if(longitudinal<2.2&&Math.abs(r.lateral-state.lateral)<2.65&&!r.near){r.near=true;state.nearMisses++;flash('CLOSE RACING +1');}if(longitudinal>4)r.near=false;}
+  state.contactCooldown=Math.max(0,state.contactCooldown-dt);
+  for(const r of ai){
+    r.contact=Math.max(0,r.contact-dt);
+    const d=trackData(r.total),safe=curvatureSpeed(d,1.72*r.skill),playerGap=state.total-r.total;
+    if(r.mistake>0)r.mistake-=dt;else if(rnd()<.002)r.mistake=.45+rnd()*1.1;
+    let target=Math.min(r.max,safe*(r.mistake>0?.72:1));
+
+    // Cars approaching another driver choose an alternate line before braking.
+    let nearest=null,nearestGap=Infinity;
+    for(const other of ai){const gap=(other.total-r.total)*TRACK_LENGTH;if(other!==r&&gap>0&&gap<nearestGap){nearest=other;nearestGap=gap;}}
+    if(nearest&&nearestGap<10&&Math.abs(nearest.lateral-r.lateral)<2.1){
+      r.targetLane=THREE.MathUtils.clamp(nearest.lateral+(r.aggression>.62?2.25:-2.25),-4.75,4.75);
+      if(nearestGap<CAR_LENGTH+1.3)target=Math.min(target,Math.max(35,nearest.speed-5));
+    }else if(playerGap>0&&playerGap*TRACK_LENGTH<12){
+      const passSide=state.lateral>0?-1:1;r.targetLane=THREE.MathUtils.clamp(state.lateral+passSide*(2.1+r.aggression),-4.75,4.75);target=Math.min(r.max,target+14*r.aggression);
+    }else if(playerGap<-.03||playerGap>.07){r.targetLane=Math.sin(time*.18+r.phase)*1.15;}
+
+    r.speed+=THREE.MathUtils.clamp(target-r.speed,-42*dt,(34+r.skill*7)*dt);r.speed=Math.max(0,r.speed);
+    r.total+=(r.speed/3.6*dt)/(TRACK_LENGTH*METERS_PER_UNIT);r.lateral+=(r.targetLane-r.lateral)*dt*(1.25+r.aggression);
+    const weave=Math.sin(time*.7+r.phase)*.1;setCarOnTrack(r.mesh,r.total,r.lateral+weave,Math.sin(time*.7+r.phase)*.012);
+
+    const longitudinal=Math.abs(r.total-state.total)*TRACK_LENGTH,lateralGap=Math.abs(r.lateral-state.lateral);
+    if(state.elapsed>1.5&&longitudinal<CAR_LENGTH*.72&&lateralGap<1.45&&r.contact<=0&&state.contactCooldown<=0){
+      const closing=Math.abs(state.speed-r.speed);state.speed=Math.max(0,state.speed-Math.min(34,8+closing*.32));state.shake=.42;state.lateralVelocity+=(state.lateral>r.lateral?1:-1)*2.2;r.contact=1.1;state.contactCooldown=.9;flash('WHEEL TO WHEEL');emit('spark',6);
+    }else if(longitudinal<CAR_LENGTH*.8&&lateralGap<2.75&&!r.near){r.near=true;state.nearMisses++;flash('CLOSE RACING +1');}
+    if(longitudinal>CAR_LENGTH*1.5)r.near=false;
+  }
 }
 
 function rebuildPlayer(index){scene.remove(player);player=createCar(cars[index],index,true);scene.add(player);setCarOnTrack(player,state.total,state.lateral);}
-function resetRace(){Object.assign(state,{mode:'race',paused:false,speed:0,throttle:0,boost:100,boosting:false,drifting:false,total:.002,lateral:0,lateralVelocity:0,lap:1,elapsed:0,topSpeed:0,nearMisses:0,shake:0,tireGrip:100,impactCooldown:0});ai.forEach((r,i)=>{r.total=-.0055*(i+1);r.speed=0;r.lateral=(i%2?.9:-.9);r.targetLane=r.lateral;r.mistake=0;});setCarOnTrack(player,state.total,0);engineAudio.start();document.querySelector('#garage').classList.add('exit');document.querySelector('#result').classList.add('hidden');document.querySelector('#hud').classList.remove('hidden');if(matchMedia('(pointer: coarse)').matches)document.querySelector('#mobile-controls').classList.remove('hidden');flash('LIGHTS OUT');}
+function resetRace(){Object.assign(state,{mode:'race',paused:false,speed:0,throttle:0,boost:100,boosting:false,drifting:false,total:.002,lateral:0,lateralVelocity:0,lap:1,elapsed:0,topSpeed:0,nearMisses:0,shake:0,tireGrip:100,impactCooldown:0,contactCooldown:0});ai.forEach((r,i)=>{r.total=.002-GRID_GAP*(i+1);r.speed=0;r.lateral=(i%2?1.35:-1.35);r.targetLane=r.lateral;r.mistake=0;r.contact=0;});setCarOnTrack(player,state.total,0);engineAudio.start();document.querySelector('#garage').classList.add('exit');document.querySelector('#result').classList.add('hidden');document.querySelector('#hud').classList.remove('hidden');if(matchMedia('(pointer: coarse)').matches)document.querySelector('#mobile-controls').classList.remove('hidden');flash('LIGHTS OUT');}
 function flash(text){const el=document.querySelector('#status-message');el.textContent=text;el.classList.remove('show');requestAnimationFrame(()=>el.classList.add('show'));clearTimeout(flash.t);flash.t=setTimeout(()=>el.classList.remove('show'),1000);}
 
 function updatePlayer(dt,time){
