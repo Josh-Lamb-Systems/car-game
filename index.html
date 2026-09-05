@@ -1,0 +1,99 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#06070a" />
+    <meta name="description" content="Apex Velocity — a neon desert F1 racing experience." />
+    <title>Apex Velocity — F1 Racing</title>
+  </head>
+  <body>
+    <div id="app">
+      <canvas id="game-canvas" aria-label="Apex Velocity racing game"></canvas>
+
+      <div class="grain"></div>
+      <div class="vignette"></div>
+
+      <header class="topbar">
+        <a class="brand" href="#" aria-label="Apex Velocity home">
+          <span class="brand-mark"><i></i><i></i><i></i></span>
+          <span>APEX <b>VELOCITY</b></span>
+        </a>
+        <div class="top-actions">
+          <span class="live-dot"><i></i> LIVE EVENT</span>
+          <button id="sound-btn" class="icon-btn" aria-label="Toggle sound">SOUND <span>ON</span></button>
+          <button id="pause-btn" class="icon-btn pause-icon" aria-label="Pause game">Ⅱ</button>
+        </div>
+      </header>
+
+      <main id="garage" class="garage">
+        <div class="eyebrow"><span></span> NIGHTFALL SERIES — ROUND 04</div>
+        <h1>OWN THE<br><em>NIGHT.</em></h1>
+        <p class="intro">Choose your machine. Chase the horizon.<br>Leave nothing but light behind.</p>
+
+        <section class="car-selector" aria-label="Choose your car">
+          <button class="car-choice active" data-car="0">
+            <span class="choice-number">01</span>
+            <span class="choice-name">VORTEX <b>R1</b></span>
+            <span class="choice-stat">BALANCED</span>
+          </button>
+          <button class="car-choice" data-car="1">
+            <span class="choice-number">02</span>
+            <span class="choice-name">PHANTOM <b>GT</b></span>
+            <span class="choice-stat">TOP SPEED</span>
+          </button>
+          <button class="car-choice" data-car="2">
+            <span class="choice-number">03</span>
+            <span class="choice-name">NEON <b>XR</b></span>
+            <span class="choice-stat">HANDLING</span>
+          </button>
+        </section>
+
+        <div class="launch-row">
+          <button id="start-btn" class="start-btn"><span>START ENGINE</span><b>↗</b></button>
+          <div class="control-hint"><span>WASD / ARROWS</span> TO DRIVE<br><span>SPACE</span> NITRO &nbsp; <span>SHIFT</span> DRIFT</div>
+        </div>
+      </main>
+
+      <section id="hud" class="hud hidden" aria-live="polite">
+        <div class="position"><small>POSITION</small><strong><span id="position">1</span><i>/8</i></strong></div>
+        <div class="lap"><small>STAGE</small><strong id="stage">01</strong><i> / 03</i></div>
+        <div class="hud-center">
+          <div class="checkpoint-label">NEXT GATE</div>
+          <div class="checkpoint" id="checkpoint">1.2 KM</div>
+        </div>
+        <div class="speed-block">
+          <div class="speed"><strong id="speed">000</strong><span>KM/H</span></div>
+          <div class="gear"><small>GEAR</small><strong id="gear">N</strong></div>
+        </div>
+        <div class="boost-wrap">
+          <div class="boost-label"><span>NITRO</span><b id="boost-value">100%</b></div>
+          <div class="boost-bar"><i id="boost-bar"></i></div>
+        </div>
+        <div class="status-message" id="status-message">GO!</div>
+        <div class="minimap"><div class="track-line"></div><i id="map-dot"></i><span>N</span></div>
+      </section>
+
+      <section id="result" class="result hidden">
+        <div class="eyebrow"><span></span> RUN COMPLETE</div>
+        <h2>HORIZON<br><em>CONQUERED.</em></h2>
+        <div class="result-stats">
+          <div><small>TIME</small><strong id="final-time">00:00.00</strong></div>
+          <div><small>TOP SPEED</small><strong id="top-speed">0 KM/H</strong></div>
+          <div><small>NEAR MISSES</small><strong id="near-misses">0</strong></div>
+        </div>
+        <button id="restart-btn" class="start-btn"><span>RACE AGAIN</span><b>↻</b></button>
+      </section>
+
+      <div id="pause-panel" class="pause-panel hidden"><small>RACE PAUSED</small><strong>HOLD YOUR LINE</strong><button id="resume-btn">RESUME</button></div>
+
+      <div class="mobile-controls hidden" id="mobile-controls">
+        <div class="steer-controls"><button data-key="left">←</button><button data-key="right">→</button></div>
+        <div class="action-controls"><button class="drift-mobile" data-key="drift">DRIFT</button><button class="nitro-mobile" data-key="boost">NITRO</button></div>
+      </div>
+
+      <footer class="footer"><span>NO RULES. JUST VELOCITY.</span><span>© 2026 AV MOTORSPORT</span></footer>
+    </div>
+    <script type="module" src="/src/main.js"></script>
+  </body>
+</html>
