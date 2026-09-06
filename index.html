@@ -31,6 +31,12 @@
         <h1>MASTER THE<br><em>STREETS.</em></h1>
         <p class="intro">Thread the barriers from Sainte Dévote to Rascasse.<br>Brake late. Protect the tires. Earn every pass.</p>
 
+        <div class="mode-selector" aria-label="Game mode">
+          <button class="mode-choice active" data-mode="solo"><span>01</span> SOLO GRAND PRIX</button>
+          <button class="mode-choice" data-mode="split"><span>02</span> SPLIT-SCREEN</button>
+        </div>
+
+        <div class="selector-label">PLAYER 1 — CHOOSE CAR</div>
         <section class="car-selector" aria-label="Choose your car">
           <button class="car-choice active" data-car="0">
             <span class="choice-number">01</span>
@@ -49,14 +55,22 @@
           </button>
         </section>
 
+        <div id="p2-select" class="p2-select hidden">
+          <span>PLAYER 2 CAR</span>
+          <button data-p2-car="0" aria-label="Player 2 Vortex R1">VORTEX</button>
+          <button data-p2-car="1" class="active" aria-label="Player 2 Phantom GT">PHANTOM</button>
+          <button data-p2-car="2" aria-label="Player 2 Neon XR">NEON</button>
+        </div>
+
         <div class="launch-row">
           <button id="start-btn" class="start-btn"><span>START ENGINE</span><b>↗</b></button>
-          <div class="control-hint"><span>WASD / ARROWS</span> TO DRIVE<br><span>SPACE</span> NITRO &nbsp; <span>SHIFT</span> DRIFT</div>
+          <div class="control-hint" id="control-hint"><span>WASD / ARROWS</span> TO DRIVE<br><span>SPACE</span> NITRO &nbsp; <span>SHIFT</span> DRIFT</div>
         </div>
       </main>
 
       <section id="hud" class="hud hidden" aria-live="polite">
-        <div class="position"><small>POSITION</small><strong><span id="position">1</span><i>/8</i></strong></div>
+        <div class="player-tag">P1</div>
+        <div class="position"><small>POSITION</small><strong><span id="position">1</span><i id="total-racers">/8</i></strong></div>
           <div class="lap"><small>LAP</small><strong id="stage">01</strong><i> / 03</i></div>
         <div class="hud-center">
           <div class="checkpoint-label" id="corner-label">NEXT CORNER</div>
@@ -74,9 +88,29 @@
         <div class="minimap"><div class="track-line"></div><i id="map-dot"></i><span>N</span></div>
       </section>
 
+      <section id="hud-p2" class="hud hud-p2 hidden" aria-live="polite">
+        <div class="player-tag">P2</div>
+        <div class="position"><small>POSITION</small><strong><span id="position-p2">2</span><i id="total-racers-p2">/9</i></strong></div>
+        <div class="lap"><small>LAP</small><strong id="stage-p2">01</strong><i> / 03</i></div>
+        <div class="hud-center">
+          <div class="checkpoint-label" id="corner-label-p2">NEXT CORNER</div>
+          <div class="checkpoint" id="checkpoint-p2">SAINTE DÉVOTE</div>
+        </div>
+        <div class="speed-block">
+          <div class="speed"><strong id="speed-p2">000</strong><span>KM/H</span></div>
+          <div class="gear"><small>GEAR</small><strong id="gear-p2">N</strong></div>
+        </div>
+        <div class="boost-wrap">
+          <div class="boost-label"><span>NITRO</span><b id="boost-value-p2">100%</b></div>
+          <div class="boost-bar"><i id="boost-bar-p2"></i></div>
+        </div>
+        <div class="status-message" id="status-message-p2">GO!</div>
+      </section>
+
       <section id="result" class="result hidden">
         <div class="eyebrow"><span></span> CHEQUERED FLAG</div>
         <h2>MONACO<br><em>MASTERED.</em></h2>
+        <div class="winner-banner" id="winner-banner">PLAYER 1 FINISHES 1ST</div>
         <div class="result-stats">
           <div><small>TIME</small><strong id="final-time">00:00.00</strong></div>
           <div><small>TOP SPEED</small><strong id="top-speed">0 KM/H</strong></div>
